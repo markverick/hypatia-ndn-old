@@ -1,4 +1,4 @@
-Installing ndnSIM anywhere in your system
+You can install ndnSIM anywhere in your system
 
 ```
 mkdir ndnSIM
@@ -15,7 +15,7 @@ cd ns-3
 sudo ./waf install
 ```
 
-Need to specify the path to your ns-3/ndnSIM installation
+You need to specify the path to your ns-3/ndnSIM installation
 Default path after running `sudo ./waf install` will be `/usr/local/lib/pkgconfig`
 
 ```
