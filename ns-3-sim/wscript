@@ -1,15 +1,11 @@
-## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
-# python lib modules
-from __future__ import print_function
+VERSION='0.1'
+APPNAME='template'
+
+from waflib import Build, Logs, Options, TaskGen
 import subprocess
 import os
-
-from utils import read_config_file
-
-
-# WAF modules
-from waflib import Build, Logs, Options, TaskGen
 
 def options(opt):
     opt.load(['compiler_c', 'compiler_cxx'])
@@ -65,8 +61,6 @@ def configure(conf):
         if 'gcc' in (conf.env.CXX_NAME, conf.env.CC_NAME):
             conf.env.append_value('SHLIB_MARKER', '-Wl,--no-as-needed')
 
-    conf.check_compiler_flags()
-            
     if conf.options.logging:
         conf.define('NS3_LOG_ENABLE', 1)
         conf.define('NS3_ASSERT_ENABLE', 1)
@@ -74,21 +68,43 @@ def configure(conf):
 def build (bld):
     deps =  ' '.join (['ns3_'+dep for dep in MANDATORY_NS3_MODULES + OTHER_NS3_MODULES]).upper ()
 
+    ndnTools = bld.objects (
+        target = "ndn-tools",
+        features = ["cxx"],
+        source = bld.path.ant_glob(['ndn-tools/core/**/*.cpp',
+                                    'ndn-tools/tools/ping/**/*.cpp'],
+                                    excl=['**/ndn-ping.cpp',
+                                    '**/ndn-ping-server.cpp']),
+        includes = "ndn-tools",
+        export_includes = "ndn-tools",
+        use = deps
+        )
+
     common = bld.objects (
         target = "extensions",
         features = ["cxx"],
         source = bld.path.ant_glob(['extensions/**/*.cc', 'extensions/**/*.cpp']),
-        use = deps,
+        use = deps + " ndn-tools"
         )
 
-    for scenario in bld.path.ant_glob(['scenarios/*.cc', 'scenarios/*.cpp']):
-        name = scenario.change_ext('').path_from(bld.path.find_node('scenarios/').get_bld())
+    for scenario in bld.path.ant_glob (['scenarios/*.cc']):
+        name = str(scenario)[:-len(".cc")]
         app = bld.program (
             target = name,
             features = ['cxx'],
             source = [scenario],
             use = deps + " extensions",
-            includes = "extensions"
+            includes = "extensions",
+            export_includes = "extensions"
+            )
+
+    for scenario in bld.path.ant_glob (['scenarios/*.cpp']):
+        name = str(scenario)[:-len(".cpp")]
+        app = bld.program (
+            target = name,
+            features = ['cxx'],
+            source = [scenario],
+            use = deps + " extensions ndn-tools"
             )
 
 def shutdown (ctx):
